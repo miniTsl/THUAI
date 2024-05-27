@@ -38,7 +38,7 @@ class SVM(nn.Module):
         return hinge_loss + 1e-3 * l2_loss
     
     def predict(self, x):
-        return torch.sign(self.forward(x)).squeeze().detach().numpy()
+        return torch.argmax(self.forward(x), dim=1)
     
     def predict_proba(self, x):
         return self.forward(x).squeeze().detach().numpy()
