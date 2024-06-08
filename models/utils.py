@@ -1,18 +1,26 @@
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
-from criterions import LabelSmoothingCrossEntropyLoss
+from criterions import LabelSmoothingCrossEntropyLoss, HingeL2Loss
 from autoaugment import CIFAR10Policy
 from data_augment import RandomCropPaste
 from vit import ViT
-
+from SVM import SVM
+from basic_CNN import basic_CNN
+from Resnet34 import BasicBlock, ResNet
 
 def get_criterion(args):
     if args.criterion=="ce":
         if args.label_smoothing:
             criterion = LabelSmoothingCrossEntropyLoss(args.num_classes, smoothing=args.smoothing)  # 标签平滑，交叉熵损失
         else:
-            criterion = nn.CrossEntropyLoss()   # 交叉熵损失
+            criterion = nn.CrossEntropyLoss()   # 交叉熵损失 
+    elif args.criterion=="mse":
+        criterion = nn.MSELoss()
+    elif args.criterion== "hinge":
+        criterion = nn.HingeEmbeddingLoss()
+    elif args.criterion== "hinge+l2":
+        criterion = HingeL2Loss(args.num_classes)
     else:
         raise ValueError(f"{args.criterion}?")  # 报错
     return criterion
@@ -31,6 +39,12 @@ def get_model(args):
             head=args.head,
             is_cls_token=args.is_cls_token
             )   # Vision Transformer
+    elif args.model_name == 'svm':
+        net = SVM(args.in_c, args.size, kernel=args.svm_kernel)
+    elif args.model_name == 'basic_cnn':
+        net = basic_CNN(args.in_c, args.num_classes)
+    elif args.model_name == 'resnet':
+        net = ResNet(BasicBlock, args.in_c, [3, 4, 6, 3], num_classes=args.num_classes)
     else:
         raise NotImplementedError(f"{args.model_name} is not implemented yet...")
     return net

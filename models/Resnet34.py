@@ -1,6 +1,6 @@
    
 import torch
-from torch import nn
+import torch.nn as nn
 
 
 # 构造resnet34模型(cifar10为32*32*3)
@@ -29,10 +29,10 @@ class BasicBlock(nn.Module):
         return out
 
 class ResNet(nn.Module):
-    def __init__(self, block, layers, num_classes=10): 
+    def __init__(self, block, input_c, layers, num_classes=10): 
         super(ResNet, self).__init__()
         self.in_channels = 64
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+        self.conv1 = nn.Conv2d(input_c, 64, kernel_size=3, stride=1, padding=1, bias=False)
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
         self.layer1 = self._make_layer(block, 64, layers[0])
@@ -80,5 +80,5 @@ class ResNet(nn.Module):
     def predict_proba(self, x):
         return self.forward(x).squeeze().detach().numpy()
 
-# model = ResNet(BasicBlock, [3, 4, 6, 3])
+# model = ResNet(BasicBlock, 3, [3, 4, 6, 3])
 # print(model)
