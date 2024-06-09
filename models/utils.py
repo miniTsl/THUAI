@@ -5,7 +5,6 @@ from criterions import LabelSmoothingCrossEntropyLoss, HingeL2Loss
 from autoaugment import CIFAR10Policy
 from data_augment import RandomCropPaste
 from vit import ViT
-from SVM import SVM
 from basic_CNN import basic_CNN
 from Resnet34 import BasicBlock, ResNet
 
@@ -39,8 +38,6 @@ def get_model(args):
             head=args.head,
             is_cls_token=args.is_cls_token
             )   # Vision Transformer
-    elif args.model_name == 'svm':
-        net = SVM(args.in_c, args.size, kernel=args.svm_kernel)
     elif args.model_name == 'basic_cnn':
         net = basic_CNN(args.in_c, args.num_classes)
     elif args.model_name == 'resnet':

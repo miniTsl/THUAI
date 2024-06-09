@@ -13,7 +13,7 @@ from data_augment import CutMix, MixUp
 parser = argparse.ArgumentParser()
 parser.add_argument("--dataset", default="c10", type=str, help="[c10, c100, svhn]")
 parser.add_argument("--num-classes", default=10, type=int)
-parser.add_argument("--model-name", default="vit", help="[vit, basic_cnn, resnet, svm]", type=str)
+parser.add_argument("--model-name", default="vit", help="[vit, basic_cnn, resnet]", type=str)
 parser.add_argument("--patch", default=8, type=int)
 parser.add_argument("--batch-size", default=128, type=int)
 parser.add_argument("--eval-batch-size", default=1024, type=int)
@@ -42,8 +42,6 @@ parser.add_argument("--mlp-hidden", default=1536, type=int)
 parser.add_argument("--off-cls-token", action="store_true")
 parser.add_argument("--seed", default=42, type=int)
 parser.add_argument("--project-name", default="VisionTransformer")
-parser.add_argument("--svm-kernel", default='linear', type=str, help="[linear, gaussian, polynomial, sigmoid, laplace]")
-
 
 args = parser.parse_args()
 torch.manual_seed(args.seed)

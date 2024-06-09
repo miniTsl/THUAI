@@ -1,45 +1,123 @@
-import os
 import numpy as np
-import pandas as pd
 import torch
-from torch import nn
+import torchvision
+import torchvision.transforms as transforms
+import pickle
 
-# 定义不同的核函数：线性、gaussian、多项式
-def linear_kernel(x):
-    return x
+# 数据加载和预处理
+transform = transforms.Compose(
+    [transforms.ToTensor(),
+     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616))])
 
-def gaussian_kernel(x, gamma=1):
-    n = x.shape[0]
-    x = x.unsqueeze(0).expand(n, -1, -1)
-    y = x.transpose(0, 1)
-    return torch.exp(-gamma * torch.sum((x - y) ** 2, dim=2))
+trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+trainloader = torch.utils.data.DataLoader(trainset, batch_size=10000, shuffle=True, num_workers=2)
 
-def polynomial_kernel(x, p=2):
-    return (torch.mm(x, x.t()) + 1) ** p
+testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+testloader = torch.utils.data.DataLoader(testset, batch_size=10000, shuffle=False, num_workers=2)
 
+# 提取数据并展平图像
+def extract_data(dataloader):
+    for data in dataloader:
+        images, labels = data
+    return images.numpy().reshape(images.shape[0], -1), labels.numpy()
 
-# 构建SVM模型
-class SVM(nn.Module):
-    def __init__(self, input_dim, kernel=None):
-        super(SVM, self).__init__()
+X_train, y_train = extract_data(trainloader)
+X_test, y_test = extract_data(testloader)
+
+# SVM 训练和预测
+class SVM:
+    def __init__(self, kernel='linear', C=1.0, gamma=None, degree=3):
         self.kernel = kernel
-        self.w = nn.Parameter(torch.randn(input_dim, 1))
-        self.b = nn.Parameter(torch.zeros(1))
+        self.C = C
+        self.gamma = gamma
+        self.degree = degree
+        self.alpha = None
+        self.b = None
+        self.X = None
+        self.y = None
 
-    def forward(self, x):
-        if self.kernel is not None:
-            x = self.kernel(x)
-        return torch.mm(x, self.w) + self.b
+    def fit(self, X, y):
+        n_samples, n_features = X.shape
+        self.alpha = np.zeros(n_samples)
+        self.b = 0.0
+        self.X = X
+        self.y = y
+        K = self.compute_kernel(X)
 
-    def loss(self, x, y):
-        y_hat = self.forward(x)
-        hinge_loss = torch.mean(torch.clamp(1 - y * y_hat, min=0))
-        l2_loss = torch.sum(self.w ** 2) / 2
-        return hinge_loss + 1e-3 * l2_loss
-    
-    def predict(self, x):
-        return torch.argmax(self.forward(x), dim=1)
-    
-    def predict_proba(self, x):
-        return self.forward(x).squeeze().detach().numpy()
+        # Simplified SMO algorithm
+        for sss in range(100):
+            for i in range(n_samples):
+                error_i = self.predict_single(X[i]) - y[i]
+                if (y[i] * error_i < -0.001 and self.alpha[i] < self.C) or (y[i] * error_i > 0.001 and self.alpha[i] > 0):
+                    j = np.random.randint(0, n_samples)
+                    error_j = self.predict_single(X[j]) - y[j]
+                    alpha_i_old, alpha_j_old = self.alpha[i], self.alpha[j]
+                    if y[i] != y[j]:
+                        L = max(0, self.alpha[j] - self.alpha[i])
+                        H = min(self.C, self.C + self.alpha[j] - self.alpha[i])
+                    else:
+                        L = max(0, self.alpha[i] + self.alpha[j] - self.C)
+                        H = min(self.C, self.alpha[i] + self.alpha[j])
+                    if L == H:
+                        continue
+                    eta = 2 * K[i, j] - K[i, i] - K[j, j]
+                    if eta >= 0:
+                        continue
+                    self.alpha[j] -= y[j] * (error_i - error_j) / eta
+                    self.alpha[j] = np.clip(self.alpha[j], L, H)
+                    if abs(self.alpha[j] - alpha_j_old) < 1e-5:
+                        continue
+                    self.alpha[i] += y[i] * y[j] * (alpha_j_old - self.alpha[j])
+                    b1 = self.b - error_i - y[i] * (self.alpha[i] - alpha_i_old) * K[i, i] - y[j] * (self.alpha[j] - alpha_j_old) * K[i, j]
+                    b2 = self.b - error_j - y[i] * (self.alpha[i] - alpha_i_old) * K[i, j] - y[j] * (self.alpha[j] - alpha_j_old) * K[j, j]
+                    if 0 < self.alpha[i] < self.C:
+                        self.b = b1
+                    elif 0 < self.alpha[j] < self.C:
+                        self.b = b2
+                    else:
+                        self.b = (b1 + b2) / 2
 
+    def compute_kernel(self, X):
+        if self.kernel == 'linear':
+            return np.dot(X, X.T)
+        elif self.kernel == 'poly':
+            return (np.dot(X, X.T) + 1) ** self.degree
+        elif self.kernel == 'rbf':
+            if self.gamma is None:
+                self.gamma = 1 / X.shape[1]
+            K = np.zeros((X.shape[0], X.shape[0]))
+            for i in range(X.shape[0]):
+                K[i] = np.exp(-self.gamma * np.sum((X[i] - X) ** 2, axis=1))
+            return K
+        else:
+            raise ValueError("Unsupported kernel")
+
+    def predict_single(self, x):
+        if self.kernel == 'linear':
+            return np.dot(x, (self.alpha * self.y) @ self.X) + self.b
+        elif self.kernel == 'poly':
+            return (np.dot(x, (self.alpha * self.y) @ self.X) + 1) ** self.degree + self.b
+        elif self.kernel == 'rbf':
+            if self.gamma is None:
+                self.gamma = 1 / self.X.shape[1]
+            K = np.exp(-self.gamma * np.sum((x - self.X) ** 2, axis=1))
+            return np.dot(K, self.alpha * self.y) + self.b
+        else:
+            raise ValueError("Unsupported kernel")
+
+    def predict(self, X):
+        return np.sign(np.array([self.predict_single(x) for x in X]))
+
+# 使用不同核训练SVM
+svm = SVM(kernel='rbf', C=1.0)
+
+svm.fit(X_train, y_train)
+
+# 预测并计算准确率
+predictions = svm.predict(X_test)
+accuracy = np.mean(predictions == y_test)
+print(f"Test Accuracy: {accuracy * 100:.2f}%")
+
+# 存储模型参数
+with open('svm_10_rbf.pkl', 'wb') as f:
+    pickle.dump(svm, f)

@@ -3,7 +3,18 @@ import matplotlib.pyplot as plt
 import torchvision
 from torchvision import transforms
 from models.vit import ViT
+from models.Resnet34 import ResNet, BasicBlock
+from models.basic_CNN import basic_CNN
+from models.SVM import SVM
 import numpy as np
+import argparse
+import pickle
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--model", default="ViT", type=str, help="[ViT, basic_cnn, resnet, SVM]")
+parser.add_argument("--svm-kernel", default="linear", type=str, help="[linear, rbf, poly]")
+parser.add_argument("--weights", default="vit_c10_aa_ls", type=str)
+args = parser.parse_args()
 
 # randomly choose one picture from CIFAR-1O test dataset
 def choose_picture():
@@ -27,8 +38,15 @@ def plot(model_name, model, test_transform):
             picture = test_transform(picture)
             picture = picture.unsqueeze(0)
             prediction = model(picture).argmax(-1)
-        elif model_name == "ResNet":
-            prediction = None
+        elif model_name == "resnet":
+            picture = test_transform(picture)
+            prediction = model(picture.unsqueeze(0)).argmax(-1)
+        elif model_name == 'basic_cnn':
+            picture = test_transform(picture)
+            prediction = model(picture.unsqueeze(0)).argmax(-1)
+        elif model_name == 'SVM':
+            picture =  picture.numpy().reshape(1, -1)
+            prediction = model.predict(picture)
         else:
             prediction = None
 
@@ -38,14 +56,15 @@ def plot(model_name, model, test_transform):
         plt.imshow(img_plt)
         plt.title(true_label + "-" + prediction_label, fontsize=15)
         plt.axis('off')
-    plt.savefig("demo1.png")
+    plt.savefig("./demo/demo1.png")
 
 
 if __name__ == '__main__':
-    model_name = "ViT" # or "SVM", "ResNet"
+    model_name = args.model #"ViT" or "SVM", "resnet", "basic cnn"
+    weight_path = "weights/"+args.weights+'.pth'
+
     if model_name == "ViT":
         model = ViT(head=12)
-        weight_path = "weights/vit_c10_aa_ls.pth"
         state_dict = torch.load(weight_path)
         new_state_dict = {k.replace('model.', ''): v for k, v in state_dict.items()}    # 保存权重时多了个model的前缀
         model.load_state_dict(new_state_dict)
@@ -54,9 +73,32 @@ if __name__ == '__main__':
         test_transform = [transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)] 
         test_transform = transforms.Compose(test_transform)
         
-    elif model_name == "ResNet":
-        model = None
+    elif model_name == "resnet":
+        model = ResNet(BasicBlock, 3, [3, 4, 6, 3])
+        state_dict = torch.load(weight_path)
+        new_state_dict = {k.replace('model.', ''): v for k, v in state_dict.items()}
+        model.load_state_dict(new_state_dict)
+        
+        mean, std = [0.4914, 0.4822, 0.4465], [0.2470, 0.2435, 0.2616]
+        test_transform = [transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)]
+        test_transform = transforms.Compose(test_transform)
+
+    elif model_name == "basic_cnn":
+        model = basic_CNN(3, 10)
+        state_dict = torch.load(weight_path)
+        new_state_dict = {k.replace('model.', ''): v for k, v in state_dict.items()}
+        model.load_state_dict(new_state_dict)
+
+        mean, std = [0.4914, 0.4822, 0.4465], [0.2470, 0.2435, 0.2616]
+        test_transform = [transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)]
+        test_transform = transforms.Compose(test_transform)
+
+    elif model_name == 'SVM':
+        model = SVM(kernel=args.svm_kernel)
+        with open(weight_path, 'rb') as f:
+            model = pickle.load(f)
         test_transform = None
+
     else:
         model = None
         test_transform = None
