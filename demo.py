@@ -5,14 +5,11 @@ from torchvision import transforms
 from models.vit import ViT
 from models.Resnet34 import ResNet, BasicBlock
 from models.basic_CNN import basic_CNN
-from models.SVM import SVM
 import numpy as np
 import argparse
-import pickle
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--model", default="ViT", type=str, help="[ViT, basic_cnn, resnet, SVM]")
-parser.add_argument("--svm-kernel", default="linear", type=str, help="[linear, rbf, poly]")
+parser.add_argument("--model", default="ViT", type=str, help="[ViT, basic_cnn, resnet]")
 parser.add_argument("--weights", default="vit_c10_aa_ls", type=str)
 args = parser.parse_args()
 
@@ -44,9 +41,7 @@ def plot(model_name, model, test_transform):
         elif model_name == 'basic_cnn':
             picture = test_transform(picture)
             prediction = model(picture.unsqueeze(0)).argmax(-1)
-        elif model_name == 'SVM':
-            picture =  picture.numpy().reshape(1, -1)
-            prediction = model.predict(picture)
+
         else:
             prediction = None
 
@@ -56,12 +51,12 @@ def plot(model_name, model, test_transform):
         plt.imshow(img_plt)
         plt.title(true_label + "-" + prediction_label, fontsize=15)
         plt.axis('off')
-    plt.savefig("./demo/demo1.png")
+    plt.savefig("demo1.png")
 
 
 if __name__ == '__main__':
-    model_name = args.model #"ViT" or "SVM", "resnet", "basic cnn"
-    weight_path = "weights/"+args.weights+'.pth'
+    model_name = args.model #"ViT", "resnet", "basic cnn"
+    weight_path = "weights/"+args.weights+'.pth' 
 
     if model_name == "ViT":
         model = ViT(head=12)
@@ -92,12 +87,6 @@ if __name__ == '__main__':
         mean, std = [0.4914, 0.4822, 0.4465], [0.2470, 0.2435, 0.2616]
         test_transform = [transforms.ToTensor(), transforms.Normalize(mean=mean, std=std)]
         test_transform = transforms.Compose(test_transform)
-
-    elif model_name == 'SVM':
-        model = SVM(kernel=args.svm_kernel)
-        with open(weight_path, 'rb') as f:
-            model = pickle.load(f)
-        test_transform = None
 
     else:
         model = None

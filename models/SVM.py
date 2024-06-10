@@ -4,16 +4,7 @@ import torchvision
 import torchvision.transforms as transforms
 import pickle
 
-# 数据加载和预处理
-transform = transforms.Compose(
-    [transforms.ToTensor(),
-     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2470, 0.2435, 0.2616))])
 
-trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
-trainloader = torch.utils.data.DataLoader(trainset, batch_size=10000, shuffle=True, num_workers=2)
-
-testset = torchvision.datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
-testloader = torch.utils.data.DataLoader(testset, batch_size=10000, shuffle=False, num_workers=2)
 
 # 提取数据并展平图像
 def extract_data(dataloader):
@@ -21,8 +12,6 @@ def extract_data(dataloader):
         images, labels = data
     return images.numpy().reshape(images.shape[0], -1), labels.numpy()
 
-X_train, y_train = extract_data(trainloader)
-X_test, y_test = extract_data(testloader)
 
 # SVM 训练和预测
 class SVM:
@@ -108,16 +97,5 @@ class SVM:
     def predict(self, X):
         return np.sign(np.array([self.predict_single(x) for x in X]))
 
-# 使用不同核训练SVM
-svm = SVM(kernel='rbf', C=1.0)
 
-svm.fit(X_train, y_train)
 
-# 预测并计算准确率
-predictions = svm.predict(X_test)
-accuracy = np.mean(predictions == y_test)
-print(f"Test Accuracy: {accuracy * 100:.2f}%")
-
-# 存储模型参数
-with open('svm_10_rbf.pkl', 'wb') as f:
-    pickle.dump(svm, f)
