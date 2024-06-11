@@ -48,7 +48,6 @@ def get_model(args):
 
 def get_transform(args):
     train_transform = []
-    test_transform = []
     train_transform += [
         transforms.RandomCrop(size=args.size, padding=args.padding)
     ]   # 随机裁剪
@@ -64,12 +63,16 @@ def get_transform(args):
     ]   # 转换为张量，归一化
     if args.rcpaste:
         train_transform += [RandomCropPaste(size=args.size)]    # 随机裁剪、粘贴
+    train_transform = transforms.Compose(train_transform)   # 训练集数据增强
+    
+    
+    test_transform = []
     test_transform += [
         transforms.ToTensor(),
         transforms.Normalize(mean=args.mean, std=args.std)
     ]   # 转换为张量，归一化
-    train_transform = transforms.Compose(train_transform)   # 训练集数据增强
     test_transform = transforms.Compose(test_transform)    # 测试集数据增强
+    
     return train_transform, test_transform  # 返回训练集和测试集的数据增强
 
 def get_dataset(args):

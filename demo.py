@@ -10,7 +10,7 @@ import argparse
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--model", default="ViT", type=str, help="[ViT, basic_cnn, resnet]")
-parser.add_argument("--weights", default="vit_c10_aa_ls", type=str)
+parser.add_argument("--weights", default="vit_c10", type=str)
 args = parser.parse_args()
 
 # randomly choose one picture from CIFAR-1O test dataset
@@ -30,28 +30,18 @@ def plot(model_name, model, test_transform):
     for i in range(3):
         picture, label = choose_picture()
         img_plt = np.array(picture)
-
-        if model_name == "ViT": # vit needs batch dimension
-            picture = test_transform(picture)
-            picture = picture.unsqueeze(0)
-            prediction = model(picture).argmax(-1)
-        elif model_name == "resnet":
-            picture = test_transform(picture)
-            prediction = model(picture.unsqueeze(0)).argmax(-1)
-        elif model_name == 'basic_cnn':
-            picture = test_transform(picture)
-            prediction = model(picture.unsqueeze(0)).argmax(-1)
-
-        else:
-            prediction = None
-
+            
+        picture = test_transform(picture)
+        picture = picture.unsqueeze(0)
+        prediction = model(picture).argmax(-1)
         true_label = label_text[label]
         prediction_label = label_text[prediction]
         plt.subplot(1, 3, i+1)
         plt.imshow(img_plt)
         plt.title(true_label + "-" + prediction_label, fontsize=15)
         plt.axis('off')
-    plt.savefig("demo1.png")
+    # plt.savefig("demo1.png")
+    plt.show()
 
 
 if __name__ == '__main__':

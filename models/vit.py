@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torchsummary
 import torch.nn.functional as F
 class TransformerEncoder(nn.Module):
     def __init__(self, feats:int, mlp_hidden:int, head:int=8, dropout:float=0.):
@@ -91,20 +90,20 @@ class ViT(nn.Module):
         return out
 
 
-if __name__ == "__main__":
-    b,n,f = 4, 16, 128
-    x = torch.randn(b,n,f)
-    # net = MultiHeadSelfAttention(f)
-    net = TransformerEncoder(f)
-    torchsummary.summary(net, (n,f))
-    # out = net(x)
-    # print(out.shape)
+# if __name__ == "__main__":
+#     b,n,f = 4, 16, 128
+#     x = torch.randn(b,n,f)
+#     # net = MultiHeadSelfAttention(f)
+#     net = TransformerEncoder(f)
+#     torchsummary.summary(net, (n,f))
+#     # out = net(x)
+#     # print(out.shape)
     
-    b,c,h,w = 4, 3, 32, 32
-    x = torch.randn(b, c, h, w)
-    net = ViT(in_c=c, num_classes= 10, img_size=h, patch=16, dropout=0.1, num_layers=7, hidden=384, head=12, mlp_hidden=384, is_cls_token=False)
-    # out = net(x)
-    # out.mean().backward()
-    torchsummary.summary(net, (c,h,w))
-    # print(out.shape)
+#     b,c,h,w = 4, 3, 32, 32
+#     x = torch.randn(b, c, h, w)
+#     net = ViT(in_c=c, num_classes= 10, img_size=h, patch=16, dropout=0.1, num_layers=7, hidden=384, head=12, mlp_hidden=384, is_cls_token=False)
+#     # out = net(x)
+#     # out.mean().backward()
+#     torchsummary.summary(net, (c,h,w))
+#     # print(out.shape)
     

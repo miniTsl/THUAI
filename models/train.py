@@ -2,7 +2,6 @@ import argparse
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision
 import pytorch_lightning as pl
 import warmup_scheduler
 import numpy as np
@@ -97,10 +96,6 @@ class Net(pl.LightningModule):
             out = self.model(img)
             loss = self.criterion(out, label)
 
-        # if not self.log_image_flag and not self.hparams.dry_run:
-        #     self.log_image_flag = True
-        #     self._log_image(img.clone().detach().cpu())
-
         acc = torch.eq(out.argmax(-1), label).float().mean()
         self.log("loss", loss)
         self.log("acc", acc)
@@ -117,11 +112,6 @@ class Net(pl.LightningModule):
         self.log("val_loss", loss)
         self.log("val_acc", acc)
         return loss
-
-    def _log_image(self, image):
-        grid = torchvision.utils.make_grid(image, nrow=4)
-        self.logger.experiment.log_image(grid.permute(1,2,0))
-        print("[INFO] LOG IMAGE!!!")
 
 
 if __name__ == "__main__":
