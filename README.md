@@ -9,4 +9,6 @@ weights:模型参数结果
 
 AI_task_report:实验报告
 
-demo.py:简单演示代码
+demo.py:演示代码
+
+图像分类-孙一-房鋆.pptx:演示PPT
